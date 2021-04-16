@@ -57,17 +57,17 @@ async def test(ctx):
       for z in range(img.size[0]):
         if pixdata[z, y] == (255, 255, 255, 255):
           pixdata[z, y] = (colorr, colorg, colorb, 255)
-          img.save(f"colorpart{x}.png")
+          img.save(f"parts/colorpart{x}.png")
 
-    colorpart[x] = Image.open(f"colorpart{x}.png")
+    colorpart[x] = Image.open(f"parts/colorpart{x}.png")
 
     if x == 1:
-      colorpart[x].save("part1.png")
+      colorpart[x].save("parts/part1.png")
     else:
       catvalue1 = colorpart[x]
-      part[x] = Image.alpha_composite(catvalue1, Image.open(f"part{x-1}.png"))
+      part[x] = Image.alpha_composite(catvalue1, Image.open(f"parts/part{x-1}.png"))
       part[x].show()
-      part[x].save(f"part{x}.png")
+      part[x].save(f"parts/part{x}.png")
       part[x].save("newcat.png")
 
   with open('newcat.png', 'rb') as f:
