@@ -12,6 +12,8 @@ token = os.getenv('TOKEN')
 
 client = commands.Bot(command_prefix = ".")
 
+started = False
+
 catparts = {1: {"name": "Body", "value": Image.open("parts/Body1.png")}, 2: {"name": "Ear", "value": Image.open("parts/Ear1.png")}, 3: {"name":"Face", "value": Image.open("parts/Face1.png")}, 4: {"name":"Feet", "value": Image.open("parts/Feet1.png")}, 5:{"name":"Head", "value": Image.open("parts/Head1.png")}, 6:{"name":"Neck", "value": Image.open("parts/Neck1.png")}, 7:{"name":"Tail", "value": Image.open("parts/Tail1.png")}}
 
 pixdata = {}
@@ -41,7 +43,7 @@ async def update_bank(user, change):
   with open("data/bank.json", "w") as f:
     json.dump(users, f)
 
-  bal = [users[str(user.id)], users[str(user.id)]]
+  bal = [users[str(user)], users[str(user)]]
   return bal
 
 
@@ -108,6 +110,20 @@ async def create_cat(ctx):
     picture = discord.File(f)
   await ctx.send(file= picture)
 
+  #naming the kitty kitty
+  with open("first-names.json", "r") as f:
+    firstnames = json.load(f)
+  with open("last-names.json", "r") as f:
+    lastnames = json.load(f)
+  firstnamespin = random.randint(0, len(firstnames))
+  lastnamespin = random.randint(0, len(lastnames))
+
+  await ctx.send(f"This kitty's name is {firstnames[firstnamespin]} {lastnames[lastnamespin]}!")
+  catdict[9] = f"{firstnames[firstnamespin]} {lastnames[lastnamespin]}"
+  with open(f"cats/{id}cats.json", "w") as f:
+    json.dump(catdict, f)
+
+
 
 @client.event
 async def on_ready():
@@ -119,14 +135,42 @@ async def test(ctx):
 
   await create_cat(ctx)
 
+
+@client.command()
+async def balance(ctx):
+
+  await open_account(ctx.author)
+  with open("data/bank.json", "r") as f:
+    users = json.load(f)
+  string = str(ctx.author)
+  id = users[string]
+  await ctx.send(f"You have {id} kittycoin!")
+
+
 @client.command()
 async def start(ctx):
 
-  await ctx.author.send("Welcome to Pixel Cats, an incremental trading card game!".format(ctx.author))
-  await ctx.author.send("To start, we've got to get you a cat! To create a new cat, use the command .newcat".format(ctx.author))
-  await ctx.author.send("But first, you've got to have some money to get a cat! Here, I'll give you 100 kittycoin to start.".format(ctx.author))
-  await open_account(ctx.author)
-  await ctx.author.send("There, now go ahead and use the .newcat command! Each cat costs 100 kittycoin.")
+  global started
+  if started == False:
+    started = True
+    await ctx.author.send("Welcome to Pixel Cats, an incremental trading card game!".format(ctx.author))
+    await ctx.author.send("To start, we've got to get you a cat! To create a new cat, use the command .newcat".format(ctx.author))
+    await ctx.author.send("But first, you've got to have some money to get a cat! Here, I'll give you 100 kittycoin to start.".format(ctx.author))
+    await open_account(ctx.author)
+    await ctx.author.send("There, now go ahead and use the .newcat command! Each cat costs 100 kittycoin. (You can check your bank balance with the .balance commmand.")
+  else:
+    await ctx.author.send("Would you like to restart the game? This action is irreversible. If you would like to do so, simply type .restart, then type .start.")
+
+@client.command()
+async def restart(ctx):
+  global started
+  started = False
+  with open("data/bank.json", "r") as f:
+    users = json.load(f)
+  string = str(ctx.author)
+  del users[string]
+  with open("data/bank.json", "w") as f:
+    json.dump(users, f)
 
 @client.command()
 async def newcat(ctx):
