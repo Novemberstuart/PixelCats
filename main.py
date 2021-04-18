@@ -1,5 +1,4 @@
 import discord
-from discord import message
 from discord.ext import commands
 import os
 import json
@@ -26,6 +25,7 @@ async def get_bank_data():
 async def open_account(user):
   users = await get_bank_data()
 
+  #user must already be in number form! DO NOT PASS IN A USERNAME.
   if str(user) in users:
     return
   else:
@@ -35,17 +35,30 @@ async def open_account(user):
     json.dump(users,f)
   return
 
+async def start_collection(user):
+
+  if os.path.exists(f"collections/{user}.json"):
+    return
+  else:
+    with open(f"collections/{user}.json", "w") as f:
+      json.dump(f)
+
+async def open_collection(user):
+
+  await start_collection(user)
+  with open(f"collections/{user}.json", "r") as f:
+    collection = json.load(f)
+
 async def update_bank(user, change):
   users = await get_bank_data()
 
-  users[str(user)] += change
+  users[str(user.id)] += change
 
   with open("data/bank.json", "w") as f:
     json.dump(users, f)
 
-  bal = [users[str(user)], users[str(user)]]
+  bal = users[str(user.id)]
   return bal
-
 
 for x in catparts:
   catvalue = catparts[x]
@@ -103,7 +116,7 @@ async def create_cat(ctx):
     with open(f"cats/{id}cats.json", "w") as f:
       json.dump(catdict, f)
 
-  catdict[8] = f"cats/{id}cats.json"
+  catdict[8] = f"cats/{id}newcat.png"
   with open(f"cats/{id}cats.json", "w") as f:
     json.dump(catdict, f)
   with open(f'cats/{id}newcat.png', 'rb') as f:
@@ -118,9 +131,13 @@ async def create_cat(ctx):
   firstnamespin = random.randint(0, len(firstnames))
   lastnamespin = random.randint(0, len(lastnames))
 
-  await ctx.send(f"This kitty's name is {firstnames[firstnamespin]} {lastnames[lastnamespin]}!")
+  firstnameentry = firstnames[firstnamespin]
+  firstnamefinal = firstnameentry["name"]
+
+  await start_collection(ctx.author.id)
+  await ctx.send(f"This kitty's name is {firstnamefinal} {lastnames[lastnamespin]}!")
   catdict[9] = f"{firstnames[firstnamespin]} {lastnames[lastnamespin]}"
-  with open(f"cats/{id}cats.json", "w") as f:
+  with open(f"collections/{ctx.author.id}.json", "w") as f:
     json.dump(catdict, f)
 
 
@@ -139,10 +156,10 @@ async def test(ctx):
 @client.command()
 async def balance(ctx):
 
-  await open_account(ctx.author)
+  await open_account(ctx.author.id)
   with open("data/bank.json", "r") as f:
     users = json.load(f)
-  string = str(ctx.author)
+  string = str(ctx.author.id)
   id = users[string]
   await ctx.send(f"You have {id} kittycoin!")
 
@@ -158,8 +175,24 @@ async def start(ctx):
     await ctx.author.send("But first, you've got to have some money to get a cat! Here, I'll give you 100 kittycoin to start.".format(ctx.author))
     await open_account(ctx.author)
     await ctx.author.send("There, now go ahead and use the .newcat command! Each cat costs 100 kittycoin. (You can check your bank balance with the .balance commmand.")
+    await ctx.author.send("You can look at what commands you can use at any time by typing .info.")
+    await ctx.author.send("Have fun!")
   else:
     await ctx.author.send("Would you like to restart the game? This action is irreversible. If you would like to do so, simply type .restart, then type .start.")
+
+@client.command()
+async def info(ctx):
+
+  await ctx.author.send("Here's a list of the commands available to use in PixelCats."
+                        "\n .start: starts/restarts the game."
+                        "\n .newcat: creates a new cat (you must have enough kittycoin in your account! Each cat costs 100 kittycoin."
+                        "\n .balance: gives you your bank balance in kittycoins.")
+@client.command()
+async def collection(ctx):
+
+  await ctx.author.send(f"Here's your current kitty collection! You have FILL THIS OUT cats.")
+
+
 
 @client.command()
 async def restart(ctx):
@@ -167,7 +200,7 @@ async def restart(ctx):
   started = False
   with open("data/bank.json", "r") as f:
     users = json.load(f)
-  string = str(ctx.author)
+  string = str(ctx.author.id)
   del users[string]
   with open("data/bank.json", "w") as f:
     json.dump(users, f)
@@ -176,14 +209,14 @@ async def restart(ctx):
 async def newcat(ctx):
 
   users = await get_bank_data()
-  await open_account(ctx.author)
-  id = str(ctx.author)
+  id = str(ctx.author.id)
+  await open_account(id)
 
   if users[id] < 100:
     await ctx.send("You don't have enough money to get a new cat! Come back when you have more kittycoin.")
   else:
     await create_cat(ctx)
-    await update_bank(id, -100)
+    await update_bank(ctx.author, -100)
 
 
 client.run(token)
